@@ -30,35 +30,22 @@ public class AddItemActivity extends AppCompatActivity {
 
     private void setupClickListeners() {
         btnSave.setOnClickListener(v -> {
-            addItem();
+            String itemName = etItemName.getText().toString().trim();
+
+            if (itemName.isEmpty()) {
+                Toast.makeText(this, "Digite o nome do item!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            Intent resultIntent = new Intent();
+            resultIntent.putExtra("item_name", itemName);
+            setResult(RESULT_OK, resultIntent);
+            finish();
         });
 
         btnCancel.setOnClickListener(v -> {
+            setResult(RESULT_CANCELED);
             finish();
         });
-    }
-
-
-    private void addItem() {
-        String itemName = etItemName.getText().toString().trim();
-
-
-        if (itemName.isEmpty()) {
-            Toast.makeText(this, "Por favor, insira o nome do item", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-
-        Intent resultIntent = new Intent();
-        resultIntent.putExtra("item_name", itemName);
-
-
-        setResult(RESULT_OK, resultIntent);
-
-
-        Toast.makeText(this, "Item '" + itemName + "' adicionado!", Toast.LENGTH_SHORT).show();
-
-
-        finish();
     }
 }
