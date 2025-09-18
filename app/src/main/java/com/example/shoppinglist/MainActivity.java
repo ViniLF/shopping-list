@@ -1,10 +1,19 @@
 package com.example.shoppinglist;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.Toast;
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -16,9 +25,16 @@ public class MainActivity extends AppCompatActivity {
     private FloatingActionButton fabAdd;
     private Button btnNotify;
 
-    // Variáveis da lista (implementação do Kaua)
+
     private ArrayList<Item> itemList;
     private ItemAdapter adapter;
+
+
+    private static final String CHANNEL_ID = "shopping_list_channel";
+    private static final int NOTIFICATION_ID = 1;
+
+
+    private ActivityResultLauncher<Intent> addItemLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,6 +44,12 @@ public class MainActivity extends AppCompatActivity {
         initializeViews();
         setupRecyclerView();
         setupClickListeners();
+
+
+        createNotificationChannel();
+
+
+        setupActivityResultLauncher();
     }
 
     private void initializeViews() {
@@ -50,31 +72,50 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+
+    private void setupActivityResultLauncher() {
+        addItemLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                new ActivityResultCallback<ActivityResult>() {
+                    @Override
+                    public void onActivityResult(ActivityResult result) {
+                        if (result.getResultCode() == RESULT_OK) {
+                            Intent data = result.getData();
+                            if (data != null) {
+                                // Receber dados do item da AddItemActivity
+                                String itemName = data.getStringExtra("item_name");
+                                if (itemName != null && !itemName.trim().isEmpty()) {
+                                    addItem(itemName);
+                                }
+                            }
+                        }
+                    }
+                }
+        );
+    }
+
     private void setupClickListeners() {
         fabAdd.setOnClickListener(v -> {
-            // TODO: Adrian vai implementar o Intent aqui
+
             Intent intent = new Intent(MainActivity.this, AddItemActivity.class);
-            startActivity(intent);
+            addItemLauncher.launch(intent);
         });
 
         btnNotify.setOnClickListener(v -> {
-            // TODO: Adrian vai implementar a notificação aqui
-            if (!itemList.isEmpty()) {
-                Toast.makeText(this, "Você tem " + itemList.size() + " itens para comprar!", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "Adicione itens à lista primeiro!", Toast.LENGTH_SHORT).show();
-            }
+
+            showNotification();
         });
     }
 
-    // Métodos para gerenciar a lista (implementação do Kaua)
+
     public void addItem(String itemName) {
         if (itemName != null && !itemName.trim().isEmpty()) {
             Item newItem = new Item(itemName.trim());
             itemList.add(newItem);
             adapter.notifyItemInserted(itemList.size() - 1);
 
-            Toast.makeText(this, "Item adicionado com sucesso!", Toast.LENGTH_SHORT).show();
+
+            Toast.makeText(this, "Item \"" + itemName + "\" adicionado à lista!", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -85,11 +126,55 @@ public class MainActivity extends AppCompatActivity {
             adapter.notifyItemRemoved(position);
             adapter.notifyItemRangeChanged(position, itemList.size());
 
-            Toast.makeText(this, "\"" + itemName + "\" removido!", Toast.LENGTH_SHORT).show();
+
+            Toast.makeText(this, "\"" + itemName + "\" removido da lista!", Toast.LENGTH_SHORT).show();
         }
     }
 
-    // Método para testar - adiciona alguns itens exemplo
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "Lista de Compras";
+            String description = "Notificações da lista de compras";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+
+
+    private void showNotification() {
+        int itemCount = itemList.size();
+        String title = "Lista de Compras";
+        String message;
+
+        if (itemCount == 0) {
+            message = "Sua lista está vazia! Adicione alguns itens.";
+        } else if (itemCount == 1) {
+            message = "Você tem 1 item na sua lista de compras.";
+        } else {
+            message = "Você tem " + itemCount + " itens na sua lista de compras.";
+        }
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_dialog_info) // Ícone padrão do sistema
+                .setContentTitle(title)
+                .setContentText(message)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setAutoCancel(true);
+
+        NotificationManager notificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(NOTIFICATION_ID, builder.build());
+
+
+        Toast.makeText(this, "Notificação enviada! ✓", Toast.LENGTH_SHORT).show();
+    }
+
+
     private void addSampleItems() {
         addItem("Leite");
         addItem("Pão");
