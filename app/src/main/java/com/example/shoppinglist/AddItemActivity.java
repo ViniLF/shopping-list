@@ -28,11 +28,10 @@ public class AddItemActivity extends AppCompatActivity {
 
     private void setupClickListeners() {
         btnSave.setOnClickListener(v -> {
-            // TODO: Adrian vai implementar o Intent de volta aqui
         });
 
         btnCancel.setOnClickListener(v -> {
-            finish(); // Voltar para MainActivity
+            finish();
         });
     }
 }
